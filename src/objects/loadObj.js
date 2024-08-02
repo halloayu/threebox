@@ -60,7 +60,7 @@ function loadObj(options, cb, promise) {
 			let animations = [];
 			switch (options.type) {
 				case "mtl":
-					obj = obj.children[0];
+					obj = obj.children[0]; // 这里children有可能为空
 					break;
 				case "gltf":
 				case "glb":
@@ -71,6 +71,12 @@ function loadObj(options, cb, promise) {
 				case "fbx":
 					animations = obj.animations;
 					break;
+			}
+
+			// obj模型有可能导致异常
+			if (!obj) {
+				console.warn("obj模型加载异常, 没有children")
+				return
 			}
 			obj.animations = animations;
 			// [jscastro] options.rotation was wrongly used

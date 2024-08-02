@@ -57,7 +57,8 @@ Threebox.prototype = {
 			antialias: true,
 			preserveDrawingBuffer: options.preserveDrawingBuffer,
 			canvas: map.getCanvas(),
-			context: glContext
+			context: glContext,
+			logarithmicDepthBuffer: true
 		});
 
 		this.renderer.setPixelRatio(window.devicePixelRatio);
