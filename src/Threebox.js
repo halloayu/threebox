@@ -706,12 +706,12 @@ Threebox.prototype = {
 		return Object3D(options)
 	},
 
-	loadObj: async function loadObj(options, cb) {
+	loadObj: async function loadObj(options, cb, xhr) {
 		this.setDefaultView(options, this.options);
 		if (options.clone === false) {
 			return new Promise(
 				async (resolve) => {
-					loader(options, cb, async (obj) => {
+					loader(options, cb, xhr, async (obj) => {
 						resolve(obj);
 					});
 				});
@@ -732,7 +732,7 @@ Threebox.prototype = {
 				this.objectsCache.set(options.obj, {
 					promise: new Promise(
 						async (resolve, reject) => {
-							loader(options, cb, async (obj) => {
+							loader(options, cb, xhr, async (obj) => {
 								if (obj.duplicate) {
 									resolve(obj.duplicate());
 								} else {

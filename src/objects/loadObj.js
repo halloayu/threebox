@@ -15,7 +15,7 @@ const gltfLoader = new GLTFLoader();
 const fbxLoader = new FBXLoader();
 const daeLoader = new ColladaLoader();
 
-function loadObj(options, cb, promise) {
+function loadObj(options, cb, xhr, promise) {
 
 	if (options === undefined) return console.error("Invalid options provided to loadObj()");
 	options = utils._validate(options, Objects.prototype._defaults.loadObj);
@@ -104,7 +104,9 @@ function loadObj(options, cb, promise) {
 			//[jscastro] initialize the default animation to avoid issues with skeleton position
 			userScaleGroup.idle();
 
-		}, () => (null), error => {
+		}, (x) => {
+			xhr(x)
+		}, error => {
 				console.error("Could not load model file: " + options.obj + " \n " + error.stack);
 				promise("Error loading the model");
 		});
