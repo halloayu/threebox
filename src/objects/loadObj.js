@@ -134,12 +134,9 @@ function loadObj(options, cb, xhr, promise) {
 					c.material.specular = specularColor;
 				}
 				//c.material.needsUpdate = true;
-
 			}
-
 		});
 	}
-
 }
 
 module.exports = exports = loadObj;

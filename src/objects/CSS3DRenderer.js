@@ -259,4 +259,4 @@ const THREE = require('../three.js');
 
 })();
 
-export default { CSS3DRenderer: THREE.CSS3DRenderer, CSS3DObject: THREE.CSS3DObject, CSS3DSprite: THREE.CSS3DSprite };
+module.exports = exports =  { CSS3DRenderer: THREE.CSS3DRenderer, CSS3DObject: THREE.CSS3DObject, CSS3DSprite: THREE.CSS3DSprite };

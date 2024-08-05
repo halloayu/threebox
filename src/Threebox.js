@@ -20,10 +20,11 @@ const line = require("./objects/line.js");
 const tube = require("./objects/tube.js");
 const LabelRenderer = require("./objects/LabelRenderer.js");
 const BuildingShadows = require("./objects/effects/BuildingShadows.js");
+const CSS3D = require("./objects/CSS3DRenderer.js")
 
-function Threebox(map, glContext, options){
+function Threebox(map, glContext, options) {
 
-    this.init(map, glContext, options);
+	this.init(map, glContext, options);
 
 };
 
@@ -49,7 +50,7 @@ Threebox.prototype = {
 
 		this.objects = new Objects();
 
-		this.mapboxVersion = parseFloat(this.map.version); 
+		this.mapboxVersion = parseFloat(this.map.version);
 
 		// Set up a THREE.js scene
 		this.renderer = new THREE.WebGLRenderer({
@@ -155,7 +156,7 @@ Threebox.prototype = {
 			let lngDiff; // difference between cursor and model left corner
 			let latDiff; // difference between cursor and model bottom corner
 			let altDiff; // difference between cursor and model height
-			let rotationDiff; 
+			let rotationDiff;
 
 			// Return the xy coordinates of the mouse position
 			function mousePos(e) {
@@ -165,7 +166,7 @@ Threebox.prototype = {
 					y: e.originalEvent.clientY - rect.top - canvas.clientTop
 				};
 			}
-			
+
 			this.unselectObject = function () {
 				//deselect, reset and return
 				this.selectedObject.selected = false;
@@ -192,7 +193,7 @@ Threebox.prototype = {
 
 			}
 
-			this.selectFeature = function(f) {
+			this.selectFeature = function (f) {
 				this.selectedFeature = f;
 				this.setFeatureState(
 					{ source: this.selectedFeature.source, sourceLayer: this.selectedFeature.sourceLayer, id: this.selectedFeature.id },
@@ -205,7 +206,7 @@ Threebox.prototype = {
 
 			}
 
-			this.outFeature = function(f) {
+			this.outFeature = function (f) {
 				if (this.overedFeature && typeof this.overedFeature != 'undefined' && this.overedFeature.id != f) {
 					map.setFeatureState(
 						{ source: this.overedFeature.source, sourceLayer: this.overedFeature.sourceLayer, id: this.overedFeature.id },
@@ -216,7 +217,7 @@ Threebox.prototype = {
 				}
 			}
 
-			this.addTooltip = function(f) {
+			this.addTooltip = function (f) {
 				if (!this.tb.enableTooltips) return;
 				let coordinates = this.tb.getFeatureCenter(f);
 				let t = this.tb.tooltip({
@@ -230,7 +231,7 @@ Threebox.prototype = {
 				f.tooltip.tooltip.visible = true;
 			}
 
-			this.removeTooltip = function(f) {
+			this.removeTooltip = function (f) {
 				if (f.tooltip) {
 					f.tooltip.visibility = false;
 					this.tb.remove(f.tooltip);
@@ -532,7 +533,7 @@ Threebox.prototype = {
 
 			};
 
-			function onKeyUp (e) {
+			function onKeyUp(e) {
 				if (e.which == ctrlKey || e.which == cmdKey) ctrlDown = false;
 				if (e.which === shiftKey) shiftDown = false;
 			}
@@ -584,7 +585,7 @@ Threebox.prototype = {
 	},
 
 	//[jscastro] added property to manage FOV for perspective camera
-	get fov() { return this.options.fov;},
+	get fov() { return this.options.fov; },
 	set fov(value) {
 		if (this.camera instanceof THREE.PerspectiveCamera && this.options.fov !== value) {
 			this.map.transform.fov = value;
@@ -746,13 +747,52 @@ Threebox.prototype = {
 		}
 	},
 
+	loadObjSync: function loadObj(options, cb, xhr) {
+		this.setDefaultView(options, this.options);
+		if (options.clone === false) {
+			return new Promise(
+				(resolve) => {
+					loader(options, cb, xhr, async (obj) => {
+						resolve(obj);
+					});
+				});
+		}
+		else {
+			//[jscastro] new added cache for 3D Objects
+			let cache = this.objectsCache.get(options.obj);
+			if (cache) {
+				cache.promise
+					.then(obj => {
+						cb(obj.duplicate(options));
+					})
+					.catch(err => {
+						this.objectsCache.delete(options.obj);
+						console.error("Could not load model file: " + options.obj);
+					});
+			} else {
+				this.objectsCache.set(options.obj, {
+					promise: new Promise(
+						(resolve, reject) => {
+							loader(options, cb, xhr, (obj) => {
+								if (obj.duplicate) {
+									resolve(obj.duplicate());
+								} else {
+									reject(obj);
+								}
+							});
+						})
+				});
+			}
+		}
+	},
+
 	// Material
 
 	material: function (o) {
 		return material(o)
 	},
 
-	initLights : {
+	initLights: {
 		ambientLight: null,
 		dirLight: null,
 		dirLightBack: null,
@@ -973,14 +1013,14 @@ Threebox.prototype = {
 
 	//[jscastro] remove a layer clearing first the 3D objects from this layer in tb.world
 	removeLayer: function (layerId) {
-		this.clear(layerId, true).then( () => {
+		this.clear(layerId, true).then(() => {
 			this.map.removeLayer(layerId);
 		});
 	},
 
 	//[jscastro] get the sun position (azimuth, altitude) from a given datetime, lng, lat
 	getSunPosition: function (date, coords) {
-		return SunCalc.getPosition(date || Date.now(), coords[1], coords[0]);  
+		return SunCalc.getPosition(date || Date.now(), coords[1], coords[0]);
 	},
 
 	//[jscastro] get the sun times for sunrise, sunset, etc.. from a given datetime, lng, lat and alt
@@ -1021,9 +1061,9 @@ Threebox.prototype = {
 		}
 
 		this.lightDateTime = date;
-		this.lightLng = this.mapCenter.lng; 
+		this.lightLng = this.mapCenter.lng;
 		this.lightLat = this.mapCenter.lat
-		this.sunPosition = this.getSunPosition(date, [this.mapCenter.lng, this.mapCenter.lat]);  
+		this.sunPosition = this.getSunPosition(date, [this.mapCenter.lng, this.mapCenter.lat]);
 		let altitude = this.sunPosition.altitude;
 		let azimuth = Math.PI + this.sunPosition.azimuth;
 		//console.log("Altitude: " + utils.degreeify(altitude) + ", Azimuth: " + (utils.degreeify(azimuth)));
@@ -1050,7 +1090,7 @@ Threebox.prototype = {
 				color: `hsl(40, ${50 * Math.cos(this.sunPosition.altitude)}%, ${Math.max(20, 20 + (96 * Math.sin(this.sunPosition.altitude)))}%)`
 
 			}, { duration: 0 });
-			if (this.sky) { this.updateSunSky(this.getSunSky(date, this.sunPosition));}
+			if (this.sky) { this.updateSunSky(this.getSunSky(date, this.sunPosition)); }
 		}
 	},
 
@@ -1120,13 +1160,13 @@ Threebox.prototype = {
 		this.lights.ambientLight = new THREE.AmbientLight(new THREE.Color('hsl(0, 0%, 100%)'), 0.75);
 		this.scene.add(this.lights.ambientLight);
 
-		this.lights.dirLightBack = new THREE.DirectionalLight(new THREE.Color('hsl(0, 0%, 100%)'), 0.25);
-		this.lights.dirLightBack.position.set(30, 100, 100);
-		this.scene.add(this.lights.dirLightBack);
+		// this.lights.dirLightBack = new THREE.DirectionalLight(new THREE.Color('hsl(0, 0%, 100%)'), 0.25);
+		// this.lights.dirLightBack.position.set(30, 100, 100);
+		// this.scene.add(this.lights.dirLightBack);
 
-		this.lights.dirLight  = new THREE.DirectionalLight(new THREE.Color('hsl(0, 0%, 100%)'), 0.25);
-		this.lights.dirLight.position.set(-30, 100, -100);
-		this.scene.add(this.lights.dirLight);
+		// this.lights.dirLight  = new THREE.DirectionalLight(new THREE.Color('hsl(0, 0%, 100%)'), 0.25);
+		// this.lights.dirLight.position.set(-30, 100, -100);
+		// this.scene.add(this.lights.dirLight);
 
 	},
 
@@ -1149,7 +1189,7 @@ Threebox.prototype = {
 		this.lights.dirLight.shadow.camera.bottom = this.lights.dirLight.shadow.camera.left = -d2;
 		this.lights.dirLight.shadow.camera.near = 1;
 		this.lights.dirLight.shadow.camera.visible = true;
-		this.lights.dirLight.shadow.camera.far = 400000000; 
+		this.lights.dirLight.shadow.camera.far = 400000000;
 
 		this.lights.hemiLight = new THREE.HemisphereLight(new THREE.Color(0xffffff), new THREE.Color(0xffffff), 0.6);
 		this.lights.hemiLight.color.setHSL(0.661, 0.96, 0.12);
@@ -1174,6 +1214,10 @@ Threebox.prototype = {
 	memory: function () { return this.renderer.info.memory },
 
 	programs: function () { return this.renderer.info.programs.length },
+
+	css3DSprite(dom) {
+		return new CSS3D.CSS3DSprite(dom);
+	},
 
 	version: '2.2.7',
 
